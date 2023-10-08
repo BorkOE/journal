@@ -1,0 +1,75 @@
+<!-- TODO: 
+    Välja månad
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <form action="/">
+        <input type="submit" value="Tillbaka">
+    </form>
+
+</head>
+
+<body>
+    <div class="input_div" style="display: none;">
+        <textarea name="journal_text" form="journal_form" id="journal_textarea" cols="80" rows="20"></textarea>
+        <form action="/edit_text" id="journal_form" method="post">
+            <!-- <input type="hidden" value="test"> -->
+            <input type="text" name="date" value="" style="display: none;">
+            <input type="submit">
+        </form>
+    </div>
+
+    <div class="journal_entries">
+    </div>
+
+    <script>
+        const journal_entries = document.getElementsByClassName("journal_entries")[0];
+        const data = JSON.parse('{{data | tojson}}');
+
+        function add_journals(dates) {
+            
+            // Loopa över dates och lägg till journals
+            for (let i in dates) {
+                    console.log(dates[i])
+                    var date = dates[i]
+                    var div = document.createElement("div");
+                    div.className = 'journal';
+
+                    var h2 = document.createElement("h2");
+                    var p = document.createElement("p");
+                    h2.innerHTML = date 
+                    p.innerHTML = data[date]
+
+                    div.appendChild(h2);
+                    div.appendChild(p);
+                    
+                    div.addEventListener("dblclick", function () {
+                        // console.log();
+                        var input_div = document.getElementsByClassName('input_div')[0]
+                        input_div.style.display = 'block'
+                        input_div.children[0].value = this.children[1].innerHTML
+                        input_div.children[1].children[0].value = this.children[0].innerHTML
+                    }
+
+                );
+
+                    journal_entries.appendChild(div);
+
+
+                }
+
+            }
+
+        add_journals(Object.keys(data))
+
+    </script>
+</body>
+
+</html>
