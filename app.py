@@ -8,6 +8,12 @@ from flask import Flask, session, render_template, request, g
 from db_handler import DatabaseHandler
 import json
 
+def safe_json_string(s):
+    return (s
+            .replace('\r\n', '\\r\\n')
+            .replace('"', '\\"')
+            )
+
 app = Flask(__name__)
 dbh = DatabaseHandler()
 
@@ -33,7 +39,7 @@ def edit_text():
 @app.route("/show_journals")
 def show_journals():
     all_journals = dbh.get_all_journals()
-    all_journals = {k: v.replace('\r\n', '\\r\\n') for k, v in all_journals.items()}
+    all_journals = {k: safe_json_string(v) for k, v in all_journals.items()}
     return render_template("show_journals.html", data=all_journals)
 
 @app.teardown_appcontext
