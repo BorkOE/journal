@@ -24,6 +24,21 @@ class DatabaseHandler():
         self.cursor.execute(sql)
         self.connection.commit()
 
+    def get_where_sql(self, date):
+        '''returns sql string for supplied date. Uses today of no date is given'''
+        if date:
+            sql_where = f"WHERE date='{date}'"
+        else:
+            sql_where = f"WHERE date=DATE('now')"
+        return sql_where
+
+    def check_date_exist(self, date):
+        '''Checks if date exist in database, returns 1 or 0'''
+        sql_where = self.get_where_sql(date)
+        self.cursor.execute(f'SELECT EXISTS(SELECT 1 FROM {db_string} {sql_where})')
+        res = self.cursor.fetchall()
+        return res[0][0]
+
     def add_journal(self, input_text, purge_old=False, date=None):
         '''Adds a row of data to the database.'''
         if not input_text.strip() and not purge_old:
@@ -32,10 +47,7 @@ class DatabaseHandler():
             self.delete_row(f'WHERE date="{date}"')
             return
         
-        if date:
-            sql_where = f"WHERE date='{date}'"
-        else:
-            sql_where = f"WHERE date=DATE('now')"
+        sql_where = self.get_where_sql(date)
 
         prev_text = self.get_todays_journal()
 
@@ -53,6 +65,24 @@ class DatabaseHandler():
     
         self.connection.commit()
 
+    def add_rank(self, input_rank, date=None):
+        if not input_rank:
+            return
+
+        input_rank = int(input_rank)
+        date_exist = self.check_date_exist(date)
+
+        if date_exist:
+            sql_where = self.get_where_sql(date)
+            sql = f"UPDATE {db_string} SET rank={input_rank} {sql_where}"
+            self.cursor.execute(sql)
+        else:
+            sql = f"INSERT INTO {db_string} (date, rank) VALUES (?,?)"
+            self.cursor.execute(sql, (dt.date(dt.now()), input_rank))
+
+        self.connection.commit()
+
+
     def close(self):
         self.connection.commit()
         self.connection.close()
@@ -65,9 +95,15 @@ class DatabaseHandler():
         return [t[0] for t in self.cursor.fetchall() if not 'sqlite' in t[0]]
 
     def get_all_journals(self):
-        self.cursor.execute(f'SELECT * FROM journal')
+        self.cursor.execute(f'SELECT date, journal_text FROM journal')
         res = self.cursor.fetchall()
-        data = {t[1]: t[2] for t in res}
+        data = {t[0]: t[1] for t in res}
+        return data
+
+    def get_all_rankings(self):
+        self.cursor.execute(f'SELECT date, rank FROM journal')
+        res = self.cursor.fetchall()
+        data = {t[0]: t[1] for t in res if t[1]}
         return data
 
 def create_db():
@@ -81,8 +117,16 @@ def create_db():
 
 if __name__ == '__main__':
     dbh = DatabaseHandler()
+    dbh.check_date_exist('2023-10-13')
+    sql_where = 'WHERE date = "2023-10-21"'
+    dbh.cursor.execute(f'SELECT EXISTS(SELECT 1 FROM {db_string} {sql_where})')
+
+
     # dbh.get_all_journals()
     # dbh.cursor.execute('')
+    # dbh.cursor.execute('ALTER TABLE journal ADD rank INTEGER')
+    # dbh.connection.commit()
+
     # t = dbh.get_todays_journal()
     # dbh.add_journal('Andra inlögg')
 
